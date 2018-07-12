@@ -1,0 +1,57 @@
+@font-face {
+    font-family: Brother-1816-Medium;
+    src: url('TipoType_Brother_1816_Medium.otf');
+}
+
+.root{
+    -fx-background-color: #212121;
+    -fx-alignment: center;
+    -fx-font-family: Brother-1816-Medium;
+}
+
+.label {
+    -fx-text-fill: #E5E5E5;
+    -fx-font-size: 18px;
+}
+
+.text-field {
+    -fx-background-color: -fx-background;
+    -fx-background-radius: 0;
+    -fx-font-size: 13px;
+}
+
+.text-field:focused {
+    -fx-background-color: #D6D6D6;
+}
+
+.check-box {
+    -fx-text-fill: #E5E5E5;
+}
+
+.check-box .box {
+    -fx-background-color: #E5E5E5;
+    -fx-border-color: #E5E5E5;
+    -fx-border-style: none;
+    -fx-border-radius: 0px;
+
+}
+
+.check-box:selected .mark {
+    -fx-background-color: #A88E79;
+}
+
+.check-box:selected .box {
+    -fx-background-color: #D6D6D6;
+}
+
+.button{
+    -fx-font-size: 18px;
+    -fx-background-color: #1C1C1C;
+    -fx-text-fill: #A88E79;
+    -fx-background-radius: 0;
+}
+
+.button:pressed {
+    -fx-background-color: #111111;
+}
+

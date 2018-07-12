@@ -1,0 +1,16 @@
+plugins {
+    id 'java'
+}
+
+group 'com.github.bumbleboss'
+version '0.1'
+
+sourceCompatibility = 1.8
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile 'club.minnced:java-discord-rpc:2.0.1'
+}
