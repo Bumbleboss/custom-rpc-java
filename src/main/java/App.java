@@ -14,11 +14,17 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import org.apache.log4j.BasicConfigurator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class App extends Application {
 
+    private final Logger logger = LoggerFactory.getLogger("custom-rpc-java");
+
     public static void main(String[] args) {
+        BasicConfigurator.configure();
         launch(args);
     }
 
@@ -26,7 +32,6 @@ public class App extends Application {
     public void start(Stage primaryStage) {
         String font = "TipoType_Brother_1816_Medium.otf";
         Font.loadFont(App.class.getResource(font).toExternalForm().replace("%20", " "), 36);
-
         try {
             Stage window;
             window = primaryStage;
@@ -39,8 +44,10 @@ public class App extends Application {
 
             //DISCORD RPC
             DiscordRPC lib = DiscordRPC.INSTANCE;
-            DiscordRichPresence presence = new DiscordRichPresence();
             DiscordEventHandlers handlers = new DiscordEventHandlers();
+            handlers.ready = (user) -> logger.info("Presence has successfully updated! Logged on "+ user.username+"#"+user.discriminator + "("+user.userId+")");
+            handlers.disconnected = (code, message) -> logger.info(code + " - " + message);
+            handlers.errored = (code, message) -> logger.warn(code + " - " + message);
 
             //CHECKBOX
             CheckBox box = new CheckBox();
@@ -66,6 +73,21 @@ public class App extends Application {
             BooleanBinding booleanBind = clientText.textProperty().isEmpty();
             upd.disableProperty().bind(booleanBind);
 
+
+            logger.info("Running callbacks");
+            Thread thread = new Thread(() -> {
+                while (!Thread.currentThread().isInterrupted()) {
+                    lib.Discord_RunCallbacks();
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        lib.Discord_Shutdown();
+                        break;
+                    }
+                }
+            }, "RPC-Callback-Handler");
+            thread.start();
+
             //UPDATE BUTTON
             upd.setOnAction(e -> {
                 String appId = clientText.getText();
@@ -77,6 +99,8 @@ public class App extends Application {
                 String smlTxt = smlImgTxt.getText();
 
                 lib.Discord_Initialize(appId, handlers, true, "");
+                DiscordRichPresence presence = new DiscordRichPresence();
+
                 if (box.isSelected()) {
                     presence.startTimestamp = System.currentTimeMillis() / 1000; // epoch second
                 }
@@ -92,8 +116,8 @@ public class App extends Application {
             });
 
             //SHUTDOWN PROCESS
-            window.setOnCloseRequest(e -> closeApp(lib));
-            shut.setOnAction(e -> closeApp(lib));
+            window.setOnCloseRequest(e -> closeApp(thread));
+            shut.setOnAction(e -> closeApp(thread));
 
             //IS DISABLED TILL ITS FUNCTION IS MADE
             prev.setDisable(true);
@@ -117,7 +141,7 @@ public class App extends Application {
             window.setResizable(false);
             window.show();
         }catch (Exception ex) {
-            ex.printStackTrace();
+            logger.error(ex.getMessage(), ex);
         }
     }
 
@@ -142,8 +166,10 @@ public class App extends Application {
         return btn;
     }
 
-    private void closeApp(DiscordRPC lib) {
-        lib.Discord_Shutdown();
+    private void closeApp(Thread thread) {
+        logger.info("Shutting down DiscordRPC library");
+        thread.interrupt();
+        logger.info("Closing application");
         System.exit(0);
     }
 }
