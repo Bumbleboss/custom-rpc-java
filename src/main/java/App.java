@@ -15,13 +15,27 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.apache.log4j.BasicConfigurator;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.*;
 
 
 public class App extends Application {
 
     private final Logger logger = LoggerFactory.getLogger("custom-rpc-java");
+    private File cache = new File("cache.json");
+
+    //TEXT FIELDS & CHECKBOX
+    private TextField clientText = getTextField(1);
+    private TextField detailsText = getTextField(3);
+    private TextField stateText = getTextField(5);
+    private TextField lrgImgKey = getTextField(9);
+    private TextField smlImgKey = getTextField(11);
+    private TextField lrgImgTxt = getTextField(13);
+    private TextField smlImgTxt = getTextField(15);
+    private CheckBox box = new CheckBox();
 
     public static void main(String[] args) {
         BasicConfigurator.configure();
@@ -50,19 +64,9 @@ public class App extends Application {
             handlers.errored = (code, message) -> logger.warn(code + " - " + message);
 
             //CHECKBOX
-            CheckBox box = new CheckBox();
             box.setPrefSize(17, 17);
             box.setPadding(new Insets(0, 0, 0, 130));
             GridPane.setConstraints(box, 0, 6);
-
-            //TEXT FIELDS
-            TextField clientText = getTextField(1);
-            TextField detailsText = getTextField(3);
-            TextField stateText = getTextField(5);
-            TextField lrgImgKey = getTextField(9);
-            TextField smlImgKey = getTextField(11);
-            TextField lrgImgTxt = getTextField(13);
-            TextField smlImgTxt = getTextField(15);
 
             //BUTTONS
             Button upd = getButton("UPDATE", 0);
@@ -87,6 +91,19 @@ public class App extends Application {
                 }
             }, "RPC-Callback-Handler");
             thread.start();
+
+            if(cache.exists()) {
+                Cache cacheSet = new Cache();
+                clientText.setText(cacheSet.getValue("clientId"));
+                detailsText.setText(cacheSet.getValue("details"));
+                stateText.setText(cacheSet.getValue("state"));
+                box.setSelected(cacheSet.getBolValue("timestamp"));
+                lrgImgKey.setText(cacheSet.getValue("lrgKey"));
+                lrgImgTxt.setText(cacheSet.getValue("lrgTxt"));
+                smlImgKey.setText(cacheSet.getValue("smlKey"));
+                smlImgTxt.setText(cacheSet.getValue("smlTxt"));
+            }
+
 
             //UPDATE BUTTON
             upd.setOnAction(e -> {
@@ -167,9 +184,72 @@ public class App extends Application {
     }
 
     private void closeApp(Thread thread) {
+        if(!cache.exists()) {
+            if(Confirm.display("Confirm","Do you want to save your input data?")) {
+                try{
+                    cache.createNewFile();
+                    logger.info("Created cache file!");
+                    writeCache();
+                    logger.info("Written input data to the cahce file!");
+                }catch (IOException ex) {
+                    logger.error(ex.getMessage(), ex);
+                }
+            }
+        }else{
+            writeCache();
+        }
+
         logger.info("Shutting down DiscordRPC library");
         thread.interrupt();
         logger.info("Closing application");
         System.exit(0);
+    }
+
+    public static String readFile(String fileName) {
+        StringBuilder sb = new StringBuilder();
+        try {
+            FileReader fileReader = new FileReader(fileName);
+            try(BufferedReader br = new BufferedReader(fileReader)) {
+                for(String line; (line = br.readLine()) != null; ) {
+                    sb.append(line+"\n");
+                }
+                br.close();
+            }
+            fileReader.close();
+            return sb.toString();
+        }catch (Exception ex) {
+            if(ex instanceof FileNotFoundException) {
+                return "File was not found";
+            }else{
+                return ex.getMessage();
+            }
+        }
+    }
+
+    private void writeFile(String fileName, String body) {
+        byte data[] = body.getBytes();
+        try {
+            FileOutputStream out = new FileOutputStream(fileName);
+            out.write(data);
+            out.close();
+        }catch (IOException ex) {
+            logger.error(ex.getMessage(), ex);
+        }
+    }
+
+    private void writeCache() {
+        String appId = clientText.getText();
+        String details = detailsText.getText();
+        String state = stateText.getText();
+        String lrgKey = lrgImgKey.getText();
+        String lrgTxt = lrgImgTxt.getText();
+        String smlKey = smlImgKey.getText();
+        String smlTxt = smlImgTxt.getText();
+
+        String json = new JSONObject().put("clientId", appId).put("details", details)
+                .put("state", state).put("timestamp", box.isSelected())
+                .put("lrgKey", lrgKey).put("lrgTxt", lrgTxt).put("smlKey", smlKey)
+                .put("smlTxt", smlTxt).toString();
+        writeFile(cache.getName(), json);
     }
 }
