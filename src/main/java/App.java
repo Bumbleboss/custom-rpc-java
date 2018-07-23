@@ -2,7 +2,7 @@ import club.minnced.discord.rpc.DiscordEventHandlers;
 import club.minnced.discord.rpc.DiscordRPC;
 import club.minnced.discord.rpc.DiscordRichPresence;
 import javafx.application.Application;
-import javafx.beans.binding.Bindings;
+import javafx.application.Platform;
 import javafx.beans.binding.BooleanBinding;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -13,19 +13,25 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
-import javafx.stage.StageStyle;
 import org.apache.log4j.BasicConfigurator;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
 import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 
 public class App extends Application {
-
-    private final Logger logger = LoggerFactory.getLogger("custom-rpc-java");
+    private final String appName = "custom-rpc-java";
+    private final Logger logger = LoggerFactory.getLogger(appName);
     private File cache = new File("cache.json");
+    private static final String icon = App.class.getResource("256x256.png").toExternalForm().replace("20%", " ");
+    private static final String strayIcon = App.class.getResource("16x16.png").toExternalForm().replace("20%", " ");
+    private Stage window;
 
     //TEXT FIELDS & CHECKBOX
     private TextField clientText = getTextField(1);
@@ -46,10 +52,10 @@ public class App extends Application {
     public void start(Stage primaryStage) {
         String font = "TipoType_Brother_1816_Medium.otf";
         Font.loadFont(App.class.getResource(font).toExternalForm().replace("%20", " "), 36);
+        Platform.setImplicitExit(false);
         try {
-            Stage window;
             window = primaryStage;
-            window.setTitle("Custom RPC Java");
+            window.setTitle(appName);
 
             GridPane grid = new GridPane();
             grid.setPadding(new Insets(10, 10, 10, 10));
@@ -152,8 +158,52 @@ public class App extends Application {
                     upd, shut, prev
             );
 
+            window.iconifiedProperty().addListener((prop, oldValue, newValue) -> {
+                if (newValue) {
+                    if (!SystemTray.isSupported()) {
+                        logger.error("SystemTray is not supported");
+                        return;
+                    }
+
+                    window.hide();
+                    final PopupMenu popup = new PopupMenu();
+                    final TrayIcon trayIcon = new TrayIcon(getImage(strayIcon));
+                    final SystemTray tray = SystemTray.getSystemTray();
+
+                    MenuItem showApp = new MenuItem("Show application");
+                    MenuItem exitBtn = new MenuItem("Exit");
+
+                    exitBtn.addActionListener(es -> Platform.runLater(() -> {
+                        closeApp(thread);
+                    }));
+
+                    showApp.addActionListener(es -> Platform.runLater(() -> {
+                        showWindow();
+                        tray.remove(trayIcon);
+                    }));
+
+                    trayIcon.addActionListener(es -> Platform.runLater(() ->{
+                        showWindow();
+                        tray.remove(trayIcon);
+                    }));
+
+                    popup.add(showApp);
+                    popup.add(exitBtn);
+                    trayIcon.setPopupMenu(popup);
+
+                    try {
+                        tray.add(trayIcon);
+                    } catch (AWTException ex) {
+                        logger.error("TrayIcon could not be added", ex);
+                    }
+                    trayIcon.setToolTip(appName);
+                    trayIcon.displayMessage("Info!", appName +" is now running in background",  TrayIcon.MessageType.INFO);
+                }
+            });
+
             Scene scene = new Scene(grid, 620, 700);
             scene.getStylesheets().add("style.css");
+            window.getIcons().add(new javafx.scene.image.Image(icon));
             window.setScene(scene);
             window.setResizable(false);
             window.show();
@@ -184,6 +234,9 @@ public class App extends Application {
     }
 
     private void closeApp(Thread thread) {
+        if(window.isIconified()) {
+           showWindow();
+        }
         if(!cache.exists()) {
             if(Confirm.display("Confirm","Do you want to save your input data?")) {
                 try{
@@ -251,5 +304,23 @@ public class App extends Application {
                 .put("lrgKey", lrgKey).put("lrgTxt", lrgTxt).put("smlKey", smlKey)
                 .put("smlTxt", smlTxt).toString();
         writeFile(cache.getName(), json);
+    }
+
+    private void showWindow () {
+        if(window != null) {
+            window.setIconified(false);
+            window.show();
+            window.toFront();
+        }
+    }
+
+    private Image getImage(String directory) {
+        URL url = null;
+        try {
+            url = new URL(directory);
+        } catch (MalformedURLException ex) {
+            logger.error("importing image encountered an error", ex);
+        }
+        return Toolkit.getDefaultToolkit().getImage(url);
     }
 }
