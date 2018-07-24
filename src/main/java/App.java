@@ -1,3 +1,4 @@
+import ch.qos.logback.classic.BasicConfigurator;
 import club.minnced.discord.rpc.DiscordEventHandlers;
 import club.minnced.discord.rpc.DiscordRPC;
 import club.minnced.discord.rpc.DiscordRichPresence;
@@ -13,12 +14,9 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
-import org.apache.log4j.BasicConfigurator;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.imageio.ImageIO;
 import java.awt.*;
 import java.io.*;
 import java.net.MalformedURLException;
@@ -28,23 +26,23 @@ import java.net.URL;
 public class App extends Application {
     private final String appName = "custom-rpc-java";
     private final Logger logger = LoggerFactory.getLogger(appName);
-    private File cache = new File("cache.json");
+    private final File cache = new File("cache.json");
     private static final String icon = App.class.getResource("256x256.png").toExternalForm().replace("20%", " ");
     private static final String strayIcon = App.class.getResource("16x16.png").toExternalForm().replace("20%", " ");
     private Stage window;
 
     //TEXT FIELDS & CHECKBOX
-    private TextField clientText = getTextField(1);
-    private TextField detailsText = getTextField(3);
-    private TextField stateText = getTextField(5);
-    private TextField lrgImgKey = getTextField(9);
-    private TextField smlImgKey = getTextField(11);
-    private TextField lrgImgTxt = getTextField(13);
-    private TextField smlImgTxt = getTextField(15);
-    private CheckBox box = new CheckBox();
+    private final TextField clientText = getTextField(1);
+    private final TextField detailsText = getTextField(3);
+    private final TextField stateText = getTextField(5);
+    private final TextField lrgImgKey = getTextField(9);
+    private final TextField smlImgKey = getTextField(11);
+    private final TextField lrgImgTxt = getTextField(13);
+    private final TextField smlImgTxt = getTextField(15);
+    private final Label enTime = getLabel("ENABLE TIME", 6);
+    private final CheckBox box = new CheckBox();
 
     public static void main(String[] args) {
-        BasicConfigurator.configure();
         launch(args);
     }
 
@@ -71,7 +69,7 @@ public class App extends Application {
 
             //CHECKBOX
             box.setPrefSize(17, 17);
-            box.setPadding(new Insets(0, 0, 0, 130));
+            enTime.setPadding(new Insets(0, 0, 0, 30));
             GridPane.setConstraints(box, 0, 6);
 
             //BUTTONS
@@ -148,9 +146,9 @@ public class App extends Application {
             //ADDING THE LOVELY STUFF
             grid.getChildren().addAll(
                     getLabel("CLIENT ID*", 0), clientText,
-                    getLabel("DETAILS*", 2), detailsText,
-                    getLabel("STATE*", 4), stateText,
-                    getLabel("ENABLE TIME", 6), box,
+                    getLabel("DETAILS", 2), detailsText,
+                    getLabel("STATE", 4), stateText,
+                    enTime, box,
                     getLabel("LARGE IMAGE KEY", 8), lrgImgKey,
                     getLabel("SMALL IMAGE KEY", 10), smlImgKey,
                     getLabel("LARGE IMAGE TEXT", 12), lrgImgTxt,
@@ -158,6 +156,7 @@ public class App extends Application {
                     upd, shut, prev
             );
 
+            //SYSTEM TRAY FUNCTION
             window.iconifiedProperty().addListener((prop, oldValue, newValue) -> {
                 if (newValue) {
                     if (!SystemTray.isSupported()) {
@@ -167,15 +166,13 @@ public class App extends Application {
 
                     window.hide();
                     final PopupMenu popup = new PopupMenu();
-                    final TrayIcon trayIcon = new TrayIcon(getImage(strayIcon));
+                    final TrayIcon trayIcon = new TrayIcon(getStrayIcon());
                     final SystemTray tray = SystemTray.getSystemTray();
 
                     MenuItem showApp = new MenuItem("Show application");
                     MenuItem exitBtn = new MenuItem("Exit");
 
-                    exitBtn.addActionListener(es -> Platform.runLater(() -> {
-                        closeApp(thread);
-                    }));
+                    exitBtn.addActionListener(es -> Platform.runLater(() -> closeApp(thread)));
 
                     showApp.addActionListener(es -> Platform.runLater(() -> {
                         showWindow();
@@ -239,14 +236,9 @@ public class App extends Application {
         }
         if(!cache.exists()) {
             if(Confirm.display("Confirm","Do you want to save your input data?")) {
-                try{
-                    cache.createNewFile();
-                    logger.info("Created cache file!");
-                    writeCache();
-                    logger.info("Written input data to the cahce file!");
-                }catch (IOException ex) {
-                    logger.error(ex.getMessage(), ex);
-                }
+                logger.info("Created cache file!");
+                writeCache();
+                logger.info("Written input data to the cahce file!");
             }
         }else{
             writeCache();
@@ -264,9 +256,8 @@ public class App extends Application {
             FileReader fileReader = new FileReader(fileName);
             try(BufferedReader br = new BufferedReader(fileReader)) {
                 for(String line; (line = br.readLine()) != null; ) {
-                    sb.append(line+"\n");
+                    sb.append(line).append("\n");
                 }
-                br.close();
             }
             fileReader.close();
             return sb.toString();
@@ -314,12 +305,12 @@ public class App extends Application {
         }
     }
 
-    private Image getImage(String directory) {
+    private Image getStrayIcon() {
         URL url = null;
         try {
-            url = new URL(directory);
+            url = new URL(strayIcon);
         } catch (MalformedURLException ex) {
-            logger.error("importing image encountered an error", ex);
+            logger.error("importing stray icon went through an error", ex);
         }
         return Toolkit.getDefaultToolkit().getImage(url);
     }

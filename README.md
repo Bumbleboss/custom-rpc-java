@@ -9,4 +9,4 @@ Check the [Wiki](https://github.com/Bumbleboss/Custom-RPC-Java/wiki/Using-the-Ap
 You can download app by check releases [here](https://github.com/Bumbleboss/custom-rpc-java/releases) 
 
 ## Preview
-![review](https://i.imgur.com/WArQEvH.png)
+![review](https://i.imgur.com/OVYEE5h.png)
