@@ -10,44 +10,56 @@ import javafx.stage.Stage;
 
 public class Confirm {
 
-    static boolean answer;
+    private static boolean answer;
 
-    public static boolean display(String title, String message) {
+    public static boolean display(String title, String message, boolean alert) {
         Stage window = new Stage();
         window.initModality(Modality.APPLICATION_MODAL);
         window.setTitle(title);
+
         Label label = new Label();
         label.setText(message);
-
-        Button yesButton = new Button("Yes");
-        Button noButton = new Button("No");
-
-        GridPane.setConstraints(label, 0, 0);
-        GridPane.setConstraints(yesButton, 0, 1);
-        GridPane.setConstraints(noButton, 0, 1);
-
-        GridPane.setMargin(yesButton, new Insets(0,0,0, 90));
-        GridPane.setMargin(noButton, new Insets(0,0,0, 160));
-
-        yesButton.setOnAction(e -> {
-            answer = true;
-            window.close();
-        });
-
-        noButton.setOnAction(e -> {
-            answer = false;
-            window.close();
-        });
+        label.setPadding(new Insets(15));
 
         GridPane grid = new GridPane();
+        if(!alert) {
+            Button yesButton = new Button("Yes");
+            Button noButton = new Button("No");
+
+            GridPane.setConstraints(label, 0, 0);
+            GridPane.setConstraints(yesButton, 1, 1);
+            GridPane.setConstraints(noButton, 2, 1);
+
+            yesButton.setOnAction(e -> {
+                answer = true;
+                window.close();
+            });
+
+            noButton.setOnAction(e -> {
+                answer = false;
+                window.close();
+            });
+
+            grid.getChildren().addAll(label, yesButton, noButton);
+        }else{
+            Button okButton = new Button("OK");
+            GridPane.setConstraints(label, 0, 0);
+            GridPane.setConstraints(okButton, 1, 1);
+
+            okButton.setOnAction(e -> {
+                answer = true;
+                window.close();
+            });
+
+            grid.getChildren().addAll(label, okButton);
+        }
+
         grid.setPadding(new Insets(10, 10, 10, 10));
         grid.setVgap(8);
         grid.setHgap(10);
-        grid.getChildren().addAll(label, yesButton, noButton);
         grid.setAlignment(Pos.CENTER);
 
-        Scene scene = new Scene(grid, 500, 100);
-        scene.getStylesheets().add("style.css");
+        Scene scene = new Scene(grid);
         window.setScene(scene);
         window.setResizable(false);
         window.showAndWait();

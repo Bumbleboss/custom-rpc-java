@@ -3,7 +3,7 @@ plugins {
 }
 
 group 'com.github.bumbleboss'
-version '0.5'
+version '0.6'
 
 sourceCompatibility = 1.8
 
@@ -15,5 +15,4 @@ dependencies {
     compile 'club.minnced:java-discord-rpc:2.0.1'
     compile 'ch.qos.logback:logback-classic:1.2.3'
     compile 'org.json:json:20180130'
-
 }

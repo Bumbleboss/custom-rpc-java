@@ -22,6 +22,7 @@
 
 .text-field:focused {
     -fx-background-color: #D6D6D6;
+    -fx-background-radius: 0;
 }
 
 .check-box {
@@ -44,7 +45,7 @@
     -fx-background-color: #D6D6D6;
 }
 
-.button{
+.button, .button:focused{
     -fx-font-size: 18px;
     -fx-background-color: #1C1C1C;
     -fx-text-fill: #A88E79;

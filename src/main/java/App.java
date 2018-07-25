@@ -1,7 +1,7 @@
-import ch.qos.logback.classic.BasicConfigurator;
 import club.minnced.discord.rpc.DiscordEventHandlers;
 import club.minnced.discord.rpc.DiscordRPC;
 import club.minnced.discord.rpc.DiscordRichPresence;
+import com.sun.javafx.css.StyleManager;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.binding.BooleanBinding;
@@ -19,17 +19,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.awt.*;
 import java.io.*;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.util.Objects;
 
 
 public class App extends Application {
-    private final String appName = "custom-rpc-java";
-    private final Logger logger = LoggerFactory.getLogger(appName);
+
+    private Stage window;
     private final File cache = new File("cache.json");
+    private static String appName = "custom-rpc-java";
+    private static double appVersion = 0.6;
+    private static Logger logger = LoggerFactory.getLogger(appName);
     private static final String icon = App.class.getResource("256x256.png").toExternalForm().replace("20%", " ");
     private static final String strayIcon = App.class.getResource("16x16.png").toExternalForm().replace("20%", " ");
-    private Stage window;
+    private static final String font = App.class.getResource("TipoType_Brother_1816_Medium.otf").toExternalForm().replace("%20", " ");
 
     //TEXT FIELDS & CHECKBOX
     private final TextField clientText = getTextField(1);
@@ -43,17 +50,33 @@ public class App extends Application {
     private final CheckBox box = new CheckBox();
 
     public static void main(String[] args) {
+        Font.loadFont(font, 0);
         launch(args);
     }
 
     @Override
     public void start(Stage primaryStage) {
-        String font = "TipoType_Brother_1816_Medium.otf";
-        Font.loadFont(App.class.getResource(font).toExternalForm().replace("%20", " "), 36);
         Platform.setImplicitExit(false);
+        Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
+        StyleManager.getInstance().addUserAgentStylesheet("style.css");
         try {
+            if(!isLatest()) {
+                boolean answer = Confirm.display("New update " + getLatestVersion(), "What's new:\n"+getNewFeatures()+"\n\nDo you want to download it?", false);
+                if(answer) {
+                    URL url = new URL(getDownloadLink());
+                    ReadableByteChannel rbc = Channels.newChannel(url.openStream());
+                    FileOutputStream fos = new FileOutputStream(getJarName());
+                    fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+                    logger.info("Downloaded update version " + getLatestVersion());
+                    rbc.close();
+                    fos.close();
+                    Confirm.display("Download complete", "Update is now downloaded. Application will now close", true);
+                    System.exit(0);
+                }
+            }
+
             window = primaryStage;
-            window.setTitle(appName);
+            window.setTitle(appName+" v"+appVersion);
 
             GridPane grid = new GridPane();
             grid.setPadding(new Insets(10, 10, 10, 10));
@@ -161,6 +184,7 @@ public class App extends Application {
                 if (newValue) {
                     if (!SystemTray.isSupported()) {
                         logger.error("SystemTray is not supported");
+                        Confirm.display("An error has occured", "The OS you are using does not support System tray",true);
                         return;
                     }
 
@@ -192,6 +216,8 @@ public class App extends Application {
                         tray.add(trayIcon);
                     } catch (AWTException ex) {
                         logger.error("TrayIcon could not be added", ex);
+                        Confirm.display("An error has occured", ex.getMessage()+"\n\nPlease report this to the github page.",true);
+                        System.exit(0);
                     }
                     trayIcon.setToolTip(appName);
                     trayIcon.displayMessage("Info!", appName +" is now running in background",  TrayIcon.MessageType.INFO);
@@ -199,13 +225,14 @@ public class App extends Application {
             });
 
             Scene scene = new Scene(grid, 620, 700);
-            scene.getStylesheets().add("style.css");
             window.getIcons().add(new javafx.scene.image.Image(icon));
             window.setScene(scene);
             window.setResizable(false);
             window.show();
         }catch (Exception ex) {
             logger.error(ex.getMessage(), ex);
+            Confirm.display("An error has occured", ex.getMessage()+"\n\nPlease report this to the github page.",true);
+            System.exit(0);
         }
     }
 
@@ -235,7 +262,7 @@ public class App extends Application {
            showWindow();
         }
         if(!cache.exists()) {
-            if(Confirm.display("Confirm","Do you want to save your input data?")) {
+            if(Confirm.display("Confirm","Do you want to save your input data?", false)) {
                 logger.info("Created cache file!");
                 writeCache();
                 logger.info("Written input data to the cahce file!");
@@ -265,7 +292,10 @@ public class App extends Application {
             if(ex instanceof FileNotFoundException) {
                 return "File was not found";
             }else{
-                return ex.getMessage();
+                logger.error(ex.getMessage(), ex);
+                Confirm.display("An error has occured", ex.getMessage()+"\n\nPlease report this to the github page.",true);
+                System.exit(0);
+                return null;
             }
         }
     }
@@ -278,6 +308,8 @@ public class App extends Application {
             out.close();
         }catch (IOException ex) {
             logger.error(ex.getMessage(), ex);
+            Confirm.display("An error has occured", ex.getMessage()+"\n\nPlease report this to the github page.",true);
+            System.exit(0);
         }
     }
 
@@ -311,7 +343,54 @@ public class App extends Application {
             url = new URL(strayIcon);
         } catch (MalformedURLException ex) {
             logger.error("importing stray icon went through an error", ex);
+            Confirm.display("An error has occured", ex.getMessage()+"\n\nPlease report this to the github page.",true);
+            System.exit(0);
         }
         return Toolkit.getDefaultToolkit().getImage(url);
+    }
+
+    private  String body = requestGET("https://api.github.com/repos/Bumbleboss/"+App.appName+"/releases/latest");
+    private JSONObject json = new JSONObject(Objects.requireNonNull(body));
+
+    private boolean isLatest() {
+        return appVersion >= getLatestVersion();
+    }
+
+    private double getLatestVersion() {
+        String ver = json.getString("tag_name");
+        return Double.parseDouble(ver);
+    }
+
+    private String getDownloadLink() {
+        return json.getJSONArray("assets").getJSONObject(0).getString("browser_download_url");
+    }
+
+    private String getJarName() {
+        return json.getJSONArray("assets").getJSONObject(0).getString("name");
+    }
+
+    private String getNewFeatures() {
+        return json.getString("body");
+    }
+
+    private String requestGET(String link) {
+        try {
+            StringBuilder result = new StringBuilder();
+            URL url = new URL(link);
+            HttpURLConnection http = (HttpURLConnection) url.openConnection();
+            http.setRequestMethod("GET");
+            BufferedReader rd = new BufferedReader(new InputStreamReader(http.getInputStream()));
+            String line;
+            while ((line = rd.readLine()) != null) {
+                result.append(line);
+            }
+            rd.close();
+            return result.toString();
+        } catch (Exception ex) {
+            App.logger.error("Something happened while trying to check for a new version", ex);
+            Confirm.display("An error has occured", "Something happened while trying to check for a new version, please restart application.\nIf the problem still arises, please report it to the github page.",true);
+            System.exit(0);
+            return null;
+        }
     }
 }

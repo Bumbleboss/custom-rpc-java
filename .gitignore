@@ -1,5 +1,6 @@
 .gradle
 .idea
 
-/META-INF
 /out
+
+*.MF
