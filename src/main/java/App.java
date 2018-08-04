@@ -7,17 +7,19 @@ import javafx.application.Platform;
 import javafx.beans.binding.BooleanBinding;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
+import javafx.scene.control.*;
 import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.awt.*;
+import java.awt.MenuItem;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -30,24 +32,25 @@ import java.util.Objects;
 public class App extends Application {
 
     private Stage window;
-    private final File cache = new File("cache.json");
-    private static String appName = "custom-rpc-java";
-    private static double appVersion = 0.6;
-    private static Logger logger = LoggerFactory.getLogger(appName);
+    public static final File cache = new File("cache.json");
+    private static final String appName = "custom-rpc-java";
+    private static final double appVersion = 0.7;
+    public static final Logger logger = LoggerFactory.getLogger(appName);
     private static final String icon = App.class.getResource("256x256.png").toExternalForm().replace("20%", " ");
     private static final String strayIcon = App.class.getResource("16x16.png").toExternalForm().replace("20%", " ");
     private static final String font = App.class.getResource("TipoType_Brother_1816_Medium.otf").toExternalForm().replace("%20", " ");
 
-    //TEXT FIELDS & CHECKBOX
-    private final TextField clientText = getTextField(1);
-    private final TextField detailsText = getTextField(3);
-    private final TextField stateText = getTextField(5);
-    private final TextField lrgImgKey = getTextField(9);
-    private final TextField smlImgKey = getTextField(11);
-    private final TextField lrgImgTxt = getTextField(13);
-    private final TextField smlImgTxt = getTextField(15);
-    private final Label enTime = getLabel("ENABLE TIME", 6);
-    private final CheckBox box = new CheckBox();
+    //WINDOW ELEMENTS
+    public static final TextField clientText = getTextField(1);
+    public static final TextField detailsText = getTextField(3);
+    public static final TextField stateText = getTextField(5);
+    public static final TextField lrgImgKey = getTextField(9);
+    public static final TextField smlImgKey = getTextField(11);
+    public static final TextField lrgImgTxt = getTextField(13);
+    public static final TextField smlImgTxt = getTextField(15);
+    private static final Label enTime = getLabel("ENABLE TIME", 6);
+    public static final CheckBox box = new CheckBox();
+    public static final ChoiceBox<String> drpDown = new ChoiceBox<>();
 
     public static void main(String[] args) {
         Font.loadFont(font, 0);
@@ -61,8 +64,10 @@ public class App extends Application {
         StyleManager.getInstance().addUserAgentStylesheet("style.css");
         try {
             if(!isLatest()) {
-                boolean answer = Confirm.display("New update " + getLatestVersion(), "What's new:\n"+getNewFeatures()+"\n\nDo you want to download it?", false);
+                boolean answer = Windows.display("New update " + getLatestVersion(), "What's new:\n"+getNewFeatures()+"\n\nDo you want to download it?", false, true);
                 if(answer) {
+                    Windows.display("Downloading...", "Please wait while the download finishes...", true, false);
+                    logger.info("Started downloading the jar file");
                     URL url = new URL(getDownloadLink());
                     ReadableByteChannel rbc = Channels.newChannel(url.openStream());
                     FileOutputStream fos = new FileOutputStream(getJarName());
@@ -70,7 +75,7 @@ public class App extends Application {
                     logger.info("Downloaded update version " + getLatestVersion());
                     rbc.close();
                     fos.close();
-                    Confirm.display("Download complete", "Update is now downloaded. Application will now close", true);
+                    Windows.display("Download complete", "Update is now downloaded. Application will now close", true, true);
                     System.exit(0);
                 }
             }
@@ -95,10 +100,14 @@ public class App extends Application {
             enTime.setPadding(new Insets(0, 0, 0, 30));
             GridPane.setConstraints(box, 0, 6);
 
-            //BUTTONS
+            //LAST MENU
             Button upd = getButton("UPDATE", 0);
-            Button shut = getButton("SHUTDOWN", 187);
-            Button prev = getButton("PREVIEW", 400);
+            Button shut = getButton("SHUTDOWN", 150);
+
+            GridPane.setMargin(drpDown, new Insets(20, 0, 0, 335));
+            GridPane.setConstraints(drpDown, 0, 16);
+
+            drpDown.getItems().addAll("FIRST", "SECOND", "THIRD", "FOURTH", "FIFTH");
 
             //ENABLES BUTTON AFTER USER INPUT
             BooleanBinding booleanBind = clientText.textProperty().isEmpty();
@@ -119,18 +128,27 @@ public class App extends Application {
             }, "RPC-Callback-Handler");
             thread.start();
 
-            if(cache.exists()) {
-                Cache cacheSet = new Cache();
-                clientText.setText(cacheSet.getValue("clientId"));
-                detailsText.setText(cacheSet.getValue("details"));
-                stateText.setText(cacheSet.getValue("state"));
-                box.setSelected(cacheSet.getBolValue("timestamp"));
-                lrgImgKey.setText(cacheSet.getValue("lrgKey"));
-                lrgImgTxt.setText(cacheSet.getValue("lrgTxt"));
-                smlImgKey.setText(cacheSet.getValue("smlKey"));
-                smlImgTxt.setText(cacheSet.getValue("smlTxt"));
+            //SETTINGS UPDATED TO ELEMENTS IF CACHE EXITS
+            if(CacheHandler.isOldCache()) {
+                CacheHandler.updateOldToNewCache();
+                Windows.display("Info", "Old cache layout. New layout has been \nupdated for the cache file. Please re-open app", true, true);
+                System.exit(0);
             }
+            CacheHandler.setSettings(CacheHandler.getSelection());
 
+            //UPDATERS FOR WHEN A CHANGE HAPPENS TO ANY OF THE ELEMENTS
+            clientText.textProperty().addListener((obs, oldText, newText) -> CacheHandler.updateCache(oldText, newText, false));
+            detailsText.textProperty().addListener((obs, oldText, newText) -> CacheHandler.updateCache(oldText, newText, false));
+            stateText.textProperty().addListener((obs, oldText, newText) -> CacheHandler.updateCache(oldText, newText, false));
+            lrgImgKey.textProperty().addListener((obs, oldText, newText) -> CacheHandler.updateCache(oldText, newText, false));
+            lrgImgTxt.textProperty().addListener((obs, oldText, newText) -> CacheHandler.updateCache(oldText, newText, false));
+            smlImgKey.textProperty().addListener((obs, oldText, newText) -> CacheHandler.updateCache(oldText, newText, false));
+            smlImgTxt.textProperty().addListener((obs, oldText, newText) -> CacheHandler.updateCache(oldText, newText, false));
+            box.selectedProperty().addListener((obs, oldVa, newVal) -> CacheHandler.updateCache(oldVa.toString(), newVal.toString(), false));
+
+            //DROPDOWN BUTTON
+            drpDown.setValue("FIRST");
+            drpDown.setOnAction(e -> {try {CacheHandler.setSettings(CacheHandler.getSelection());} catch (JSONException ignored) {}});
 
             //UPDATE BUTTON
             upd.setOnAction(e -> {
@@ -163,9 +181,6 @@ public class App extends Application {
             window.setOnCloseRequest(e -> closeApp(thread));
             shut.setOnAction(e -> closeApp(thread));
 
-            //IS DISABLED TILL ITS FUNCTION IS MADE
-            prev.setDisable(true);
-
             //ADDING THE LOVELY STUFF
             grid.getChildren().addAll(
                     getLabel("CLIENT ID*", 0), clientText,
@@ -176,7 +191,7 @@ public class App extends Application {
                     getLabel("SMALL IMAGE KEY", 10), smlImgKey,
                     getLabel("LARGE IMAGE TEXT", 12), lrgImgTxt,
                     getLabel("SMALL IMAGE TEXT", 14), smlImgTxt,
-                    upd, shut, prev
+                    upd, shut, drpDown
             );
 
             //SYSTEM TRAY FUNCTION
@@ -184,7 +199,7 @@ public class App extends Application {
                 if (newValue) {
                     if (!SystemTray.isSupported()) {
                         logger.error("SystemTray is not supported");
-                        Confirm.display("An error has occured", "The OS you are using does not support System tray",true);
+                        Windows.display("An error has occured", "The OS you are using does not support System tray",true, true);
                         return;
                     }
 
@@ -216,7 +231,7 @@ public class App extends Application {
                         tray.add(trayIcon);
                     } catch (AWTException ex) {
                         logger.error("TrayIcon could not be added", ex);
-                        Confirm.display("An error has occured", ex.getMessage()+"\n\nPlease report this to the github page.",true);
+                        Windows.display("An error has occured", ex.getMessage()+"\n\nPlease report this to the github page.",true, true);
                         System.exit(0);
                     }
                     trayIcon.setToolTip(appName);
@@ -224,25 +239,25 @@ public class App extends Application {
                 }
             });
 
-            Scene scene = new Scene(grid, 620, 700);
+            Scene scene = new Scene(grid, 520, 700);
             window.getIcons().add(new javafx.scene.image.Image(icon));
             window.setScene(scene);
             window.setResizable(false);
             window.show();
         }catch (Exception ex) {
             logger.error(ex.getMessage(), ex);
-            Confirm.display("An error has occured", ex.getMessage()+"\n\nPlease report this to the github page.",true);
+            Windows.display("An error has occured", ex.getMessage()+"\n\nPlease report this to the github page.",true, true);
             System.exit(0);
         }
     }
 
-    private Label getLabel(String text, int row) {
+    private static Label getLabel(String text, int row) {
         Label label = new Label(text);
         GridPane.setConstraints(label, 0, row);
         return label;
     }
 
-    private TextField getTextField(int row) {
+    private static TextField getTextField(int row) {
         TextField field = new TextField();
         field.setPrefSize(470, 25);
         GridPane.setConstraints(field, 0, row);
@@ -261,72 +276,11 @@ public class App extends Application {
         if(window.isIconified()) {
            showWindow();
         }
-        if(!cache.exists()) {
-            if(Confirm.display("Confirm","Do you want to save your input data?", false)) {
-                logger.info("Created cache file!");
-                writeCache();
-                logger.info("Written input data to the cahce file!");
-            }
-        }else{
-            writeCache();
-        }
-
+        CacheHandler.updateCache("", "", true);
         logger.info("Shutting down DiscordRPC library");
         thread.interrupt();
         logger.info("Closing application");
         System.exit(0);
-    }
-
-    public static String readFile(String fileName) {
-        StringBuilder sb = new StringBuilder();
-        try {
-            FileReader fileReader = new FileReader(fileName);
-            try(BufferedReader br = new BufferedReader(fileReader)) {
-                for(String line; (line = br.readLine()) != null; ) {
-                    sb.append(line).append("\n");
-                }
-            }
-            fileReader.close();
-            return sb.toString();
-        }catch (Exception ex) {
-            if(ex instanceof FileNotFoundException) {
-                return "File was not found";
-            }else{
-                logger.error(ex.getMessage(), ex);
-                Confirm.display("An error has occured", ex.getMessage()+"\n\nPlease report this to the github page.",true);
-                System.exit(0);
-                return null;
-            }
-        }
-    }
-
-    private void writeFile(String fileName, String body) {
-        byte data[] = body.getBytes();
-        try {
-            FileOutputStream out = new FileOutputStream(fileName);
-            out.write(data);
-            out.close();
-        }catch (IOException ex) {
-            logger.error(ex.getMessage(), ex);
-            Confirm.display("An error has occured", ex.getMessage()+"\n\nPlease report this to the github page.",true);
-            System.exit(0);
-        }
-    }
-
-    private void writeCache() {
-        String appId = clientText.getText();
-        String details = detailsText.getText();
-        String state = stateText.getText();
-        String lrgKey = lrgImgKey.getText();
-        String lrgTxt = lrgImgTxt.getText();
-        String smlKey = smlImgKey.getText();
-        String smlTxt = smlImgTxt.getText();
-
-        String json = new JSONObject().put("clientId", appId).put("details", details)
-                .put("state", state).put("timestamp", box.isSelected())
-                .put("lrgKey", lrgKey).put("lrgTxt", lrgTxt).put("smlKey", smlKey)
-                .put("smlTxt", smlTxt).toString();
-        writeFile(cache.getName(), json);
     }
 
     private void showWindow () {
@@ -343,14 +297,14 @@ public class App extends Application {
             url = new URL(strayIcon);
         } catch (MalformedURLException ex) {
             logger.error("importing stray icon went through an error", ex);
-            Confirm.display("An error has occured", ex.getMessage()+"\n\nPlease report this to the github page.",true);
+            Windows.display("An error has occured", ex.getMessage()+"\n\nPlease report this to the github page.",true, true);
             System.exit(0);
         }
         return Toolkit.getDefaultToolkit().getImage(url);
     }
 
-    private  String body = requestGET("https://api.github.com/repos/Bumbleboss/"+App.appName+"/releases/latest");
-    private JSONObject json = new JSONObject(Objects.requireNonNull(body));
+    private final String body = requestGET("https://api.github.com/repos/Bumbleboss/"+App.appName+"/releases/latest");
+    private final JSONObject json = new JSONObject(Objects.requireNonNull(body));
 
     private boolean isLatest() {
         return appVersion >= getLatestVersion();
@@ -388,7 +342,9 @@ public class App extends Application {
             return result.toString();
         } catch (Exception ex) {
             App.logger.error("Something happened while trying to check for a new version", ex);
-            Confirm.display("An error has occured", "Something happened while trying to check for a new version, please restart application.\nIf the problem still arises, please report it to the github page.",true);
+            Windows.display("An error has occured",
+                    "Something happened while trying to check for a new version, " +
+                            "please restart application.\nIf the problem still arises, please report it to the github page.",true, true);
             System.exit(0);
             return null;
         }
