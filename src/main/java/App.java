@@ -34,10 +34,9 @@ public class App extends Application {
     private Stage window;
     public static final File cache = new File("cache.json");
     private static final String appName = "custom-rpc-java";
-    private static final double appVersion = 0.7;
+    private static final double appVersion = 0.8;
     public static final Logger logger = LoggerFactory.getLogger(appName);
     private static final String icon = App.class.getResource("256x256.png").toExternalForm().replace("20%", " ");
-    private static final String strayIcon = App.class.getResource("16x16.png").toExternalForm().replace("20%", " ");
     private static final String font = App.class.getResource("TipoType_Brother_1816_Medium.otf").toExternalForm().replace("%20", " ");
 
     //WINDOW ELEMENTS
@@ -66,17 +65,7 @@ public class App extends Application {
             if(!isLatest()) {
                 boolean answer = Windows.display("New update " + getLatestVersion(), "What's new:\n"+getNewFeatures()+"\n\nDo you want to download it?", false, true);
                 if(answer) {
-                    Windows.display("Downloading...", "Please wait while the download finishes...", true, false);
-                    logger.info("Started downloading the jar file");
-                    URL url = new URL(getDownloadLink());
-                    ReadableByteChannel rbc = Channels.newChannel(url.openStream());
-                    FileOutputStream fos = new FileOutputStream(getJarName());
-                    fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-                    logger.info("Downloaded update version " + getLatestVersion());
-                    rbc.close();
-                    fos.close();
-                    Windows.display("Download complete", "Update is now downloaded. Application will now close", true, true);
-                    System.exit(0);
+                    updateApp();
                 }
             }
 
@@ -164,7 +153,7 @@ public class App extends Application {
                 DiscordRichPresence presence = new DiscordRichPresence();
 
                 if (box.isSelected()) {
-                    presence.startTimestamp = System.currentTimeMillis() / 1000; // epoch second
+                    presence.startTimestamp = System.currentTimeMillis() / 1000;
                 }
 
                 presence.details = details.isEmpty() ? "" : details;
@@ -208,7 +197,7 @@ public class App extends Application {
                     final TrayIcon trayIcon = new TrayIcon(getStrayIcon());
                     final SystemTray tray = SystemTray.getSystemTray();
 
-                    MenuItem showApp = new MenuItem("Show application");
+                    MenuItem showApp = new MenuItem("Show app");
                     MenuItem exitBtn = new MenuItem("Exit");
 
                     exitBtn.addActionListener(es -> Platform.runLater(() -> closeApp(thread)));
@@ -223,6 +212,16 @@ public class App extends Application {
                         tray.remove(trayIcon);
                     }));
 
+                    if(!isLatest()) {
+                        MenuItem updateBtn = new MenuItem("Update app");
+                        updateBtn.addActionListener(es -> Platform.runLater(() -> {
+                            showWindow();
+                            updateApp();
+                        }));
+
+                        popup.add(updateBtn);
+                    }
+
                     popup.add(showApp);
                     popup.add(exitBtn);
                     trayIcon.setPopupMenu(popup);
@@ -230,9 +229,7 @@ public class App extends Application {
                     try {
                         tray.add(trayIcon);
                     } catch (AWTException ex) {
-                        logger.error("TrayIcon could not be added", ex);
-                        Windows.display("An error has occured", ex.getMessage()+"\n\nPlease report this to the github page.",true, true);
-                        System.exit(0);
+                        errorHandler(ex.getMessage()+"\n\nPlease report this to the github page", ex, "TrayIcon could not be added");
                     }
                     trayIcon.setToolTip(appName);
                     trayIcon.displayMessage("Info!", appName +" is now running in background",  TrayIcon.MessageType.INFO);
@@ -245,9 +242,7 @@ public class App extends Application {
             window.setResizable(false);
             window.show();
         }catch (Exception ex) {
-            logger.error(ex.getMessage(), ex);
-            Windows.display("An error has occured", ex.getMessage()+"\n\nPlease report this to the github page.",true, true);
-            System.exit(0);
+            errorHandler(ex.getMessage()+"\n\nPlease report this to the github page", ex, ex.getMessage());
         }
     }
 
@@ -272,6 +267,24 @@ public class App extends Application {
         return btn;
     }
 
+    private void updateApp() {
+        try {
+            Windows.display("Downloading...", "Please wait while the download finishes...", true, false);
+            logger.info("Started downloading the jar file");
+            URL url = new URL(getDownloadLink());
+            ReadableByteChannel rbc = Channels.newChannel(url.openStream());
+            FileOutputStream fos = new FileOutputStream(getJarName());
+            fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+            logger.info("Downloaded update version " + getLatestVersion());
+            rbc.close();
+            fos.close();
+            Windows.display("Download complete", "Update is now downloaded. Application will now close", true, true);
+            System.exit(0);
+        } catch (Exception ex) {
+            errorHandler(ex.getMessage()+"\n\nPlease report this to the github page", ex, "Something went wrong while trying to download the newest version");
+        }
+    }
+
     private void closeApp(Thread thread) {
         if(window.isIconified()) {
            showWindow();
@@ -294,16 +307,14 @@ public class App extends Application {
     private Image getStrayIcon() {
         URL url = null;
         try {
-            url = new URL(strayIcon);
+            url = new URL(App.class.getResource("16x16"+(isLatest()?"":"!")+".png").toExternalForm().replace("20%", " "));
         } catch (MalformedURLException ex) {
-            logger.error("importing stray icon went through an error", ex);
-            Windows.display("An error has occured", ex.getMessage()+"\n\nPlease report this to the github page.",true, true);
-            System.exit(0);
+            errorHandler(ex.getMessage()+"\n\nPlease report this to the github page", ex, "importing stray icon went through an error");
         }
         return Toolkit.getDefaultToolkit().getImage(url);
     }
 
-    private final String body = requestGET("https://api.github.com/repos/Bumbleboss/"+App.appName+"/releases/latest");
+    private final String body = requestLatest();
     private final JSONObject json = new JSONObject(Objects.requireNonNull(body));
 
     private boolean isLatest() {
@@ -327,10 +338,10 @@ public class App extends Application {
         return json.getString("body");
     }
 
-    private String requestGET(String link) {
+    private String requestLatest() {
         try {
             StringBuilder result = new StringBuilder();
-            URL url = new URL(link);
+            URL url = new URL("https://api.github.com/repos/Bumbleboss/"+App.appName+"/releases/latest");
             HttpURLConnection http = (HttpURLConnection) url.openConnection();
             http.setRequestMethod("GET");
             BufferedReader rd = new BufferedReader(new InputStreamReader(http.getInputStream()));
@@ -341,12 +352,16 @@ public class App extends Application {
             rd.close();
             return result.toString();
         } catch (Exception ex) {
-            App.logger.error("Something happened while trying to check for a new version", ex);
-            Windows.display("An error has occured",
-                    "Something happened while trying to check for a new version, " +
-                            "please restart application.\nIf the problem still arises, please report it to the github page.",true, true);
-            System.exit(0);
+            errorHandler("Something happened while trying to check for a new version, " +
+                    "please restart application.\nIf the problem still arises, please report it to the github page.",
+                    ex, "Something happened while trying to check for a new version");
             return null;
         }
+    }
+
+    private void errorHandler(String message, Exception ex, String msgError) {
+        App.logger.error(msgError, ex);
+        Windows.display("An error has occured", message, true, true);
+        System.exit(0);
     }
 }

@@ -1,6 +1,7 @@
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ChoiceBox;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -29,14 +30,19 @@ public class CacheHandler {
             if(app==null) {
                 return;
             }
-            appId.setText(app.getString("clientId"));
-            details.setText(app.getString("details"));
-            state.setText(app.getString("state"));
-            timestamp.setSelected(app.getBoolean("timestamp"));
-            lrgKey.setText(app.getString("lrgKey"));
-            lrgTxt.setText(app.getString("lrgTxt"));
-            smlKey.setText(app.getString("lrgTxt"));
-            smlTxt.setText(app.getString("smlTxt"));
+            try {
+                appId.setText(app.getString("clientId"));
+                details.setText(app.getString("details"));
+                state.setText(app.getString("state"));
+                timestamp.setSelected(app.getBoolean("timestamp"));
+                lrgKey.setText(app.getString("lrgKey"));
+                lrgTxt.setText(app.getString("lrgTxt"));
+                smlKey.setText(app.getString("lrgTxt"));
+                smlTxt.setText(app.getString("smlTxt"));
+            } catch (JSONException ex) {
+                Windows.display("An error has occured", ex.getMessage()+ "\nPlease check if there's any wrong inputs with the cache file and try again", true, true);
+                System.exit(0);
+            }
         }
     }
 
@@ -94,9 +100,7 @@ public class CacheHandler {
 
     public static boolean isOldCache() {
         if(cache.exists()) {
-            if(Cache.configObject.has("clientId")) {
-                return true;
-            }
+            return Cache.configObject.has("clientId");
         }
         return false;
     }
