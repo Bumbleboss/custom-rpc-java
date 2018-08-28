@@ -3,15 +3,15 @@
     src: url('TipoType_Brother_1816_Medium.otf');
 }
 
-.root{
-    -fx-background-color: #212121;
+.root {
+    -fx-background-color: #2C2F33;
     -fx-alignment: center;
     -fx-font-family: Brother-1816-Medium;
 }
 
 /*LABEL*/
 .label {
-    -fx-text-fill: #E5E5E5;
+    -fx-text-fill: #FFFFFF;
     -fx-font-size: 18px;
 }
 
@@ -22,56 +22,56 @@
     -fx-font-size: 13px;
 }
 .text-field:focused {
-    -fx-background-color: #D6D6D6;
+    -fx-background-color: #99AAB5;
     -fx-background-radius: 0;
 }
 
 /*CHECKBOXES*/
 .check-box {
-    -fx-text-fill: #E5E5E5;
+    -fx-text-fill: #FFFFFF;
 }
 .check-box .box {
-    -fx-background-color: #E5E5E5;
-    -fx-border-color: #E5E5E5;
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #FFFFFF;
     -fx-border-style: none;
     -fx-border-radius: 0px;
 
 }
 .check-box:selected .mark {
-    -fx-background-color: #A88E79;
+    -fx-background-color: #7289DA;
 }
 .check-box:selected .box {
-    -fx-background-color: #D6D6D6;
+    -fx-background-color: #99AAB5;
 }
 
 /*BUTTONS*/
 .button, .button:focused{
     -fx-font-size: 18px;
-    -fx-background-color: #1C1C1C;
-    -fx-text-fill: #A88E79;
+    -fx-background-color: #23272A;
+    -fx-text-fill: #7289DA;
     -fx-background-radius: 0;
 }
 .button:pressed {
-    -fx-background-color: #111111;
+    -fx-background-color: #2C2F33;
 }
 
 /*CHOICE_BOXES*/
 .choice-box, .choice-box:focused {
     -fx-mark-color: #D6D6D6;
-    -fx-background-color: #1C1C1C;
+    -fx-background-color: #23272A;
 }
 .choice-box > .label {
-    -fx-text-fill: #A88E79;
+    -fx-text-fill: #7289DA;
 }
 .choice-box .context-menu {
-    -fx-background-color: #1C1C1C;
+    -fx-background-color: #23272A;
 }
 .choice-box .menu-item:focused {
-    -fx-background-color: #A88E79;
+    -fx-background-color: #7289DA;
 }
 .choice-box .menu-item > .label {
-    -fx-text-fill: #D6D6D6;
+    -fx-text-fill: #FFFFFF;
 }
 .choice-box .menu-item:focused > .label {
-    -fx-text-fill: #212121;
+    -fx-text-fill: #2C2F33;
 }

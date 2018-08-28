@@ -3,7 +3,7 @@ plugins {
 }
 
 group 'com.github.bumbleboss'
-version '0.8'
+version '0.9'
 
 sourceCompatibility = 1.8
 

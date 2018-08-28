@@ -34,7 +34,7 @@ public class App extends Application {
     private Stage window;
     public static final File cache = new File("cache.json");
     private static final String appName = "custom-rpc-java";
-    private static final double appVersion = 0.8;
+    private static final double appVersion = 0.9;
     public static final Logger logger = LoggerFactory.getLogger(appName);
     private static final String icon = App.class.getResource("256x256.png").toExternalForm().replace("20%", " ");
     private static final String font = App.class.getResource("TipoType_Brother_1816_Medium.otf").toExternalForm().replace("%20", " ");
