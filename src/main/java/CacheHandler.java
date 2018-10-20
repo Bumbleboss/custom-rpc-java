@@ -10,6 +10,7 @@ import java.util.Objects;
 
 import javafx.scene.control.TextField;
 
+@SuppressWarnings("WeakerAccess")
 public class CacheHandler {
 
     private static final File cache = App.cache;
@@ -37,7 +38,7 @@ public class CacheHandler {
                 timestamp.setSelected(app.getBoolean("timestamp"));
                 lrgKey.setText(app.getString("lrgKey"));
                 lrgTxt.setText(app.getString("lrgTxt"));
-                smlKey.setText(app.getString("lrgTxt"));
+                smlKey.setText(app.getString("smlKey"));
                 smlTxt.setText(app.getString("smlTxt"));
             } catch (JSONException ex) {
                 Windows.display("An error has occured", ex.getMessage()+ "\nPlease check if there's any wrong inputs with the cache file and try again", true, true);

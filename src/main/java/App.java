@@ -34,7 +34,7 @@ public class App extends Application {
     private Stage window;
     public static final File cache = new File("cache.json");
     private static final String appName = "custom-rpc-java";
-    private static final double appVersion = 0.9;
+    private static final double appVersion = 1.0;
     public static final Logger logger = LoggerFactory.getLogger(appName);
     private static final String icon = App.class.getResource("256x256.png").toExternalForm().replace("20%", " ");
     private static final String font = App.class.getResource("TipoType_Brother_1816_Medium.otf").toExternalForm().replace("%20", " ");
@@ -47,7 +47,7 @@ public class App extends Application {
     public static final TextField smlImgKey = getTextField(11);
     public static final TextField lrgImgTxt = getTextField(13);
     public static final TextField smlImgTxt = getTextField(15);
-    private static final Label enTime = getLabel("ENABLE TIME", 6);
+    private static final Label enTime = getLabel("Enable time", 6);
     public static final CheckBox box = new CheckBox();
     public static final ChoiceBox<String> drpDown = new ChoiceBox<>();
 
@@ -172,14 +172,14 @@ public class App extends Application {
 
             //ADDING THE LOVELY STUFF
             grid.getChildren().addAll(
-                    getLabel("CLIENT ID*", 0), clientText,
-                    getLabel("DETAILS", 2), detailsText,
-                    getLabel("STATE", 4), stateText,
+                    getLabel("Client Id*", 0), clientText,
+                    getLabel("Details", 2), detailsText,
+                    getLabel("State", 4), stateText,
                     enTime, box,
-                    getLabel("LARGE IMAGE KEY", 8), lrgImgKey,
-                    getLabel("SMALL IMAGE KEY", 10), smlImgKey,
-                    getLabel("LARGE IMAGE TEXT", 12), lrgImgTxt,
-                    getLabel("SMALL IMAGE TEXT", 14), smlImgTxt,
+                    getLabel("Large image key", 8), lrgImgKey,
+                    getLabel("Large image text", 10), lrgImgTxt,
+                    getLabel("Small image key", 12), smlImgKey,
+                    getLabel("Small image text", 14), smlImgTxt,
                     upd, shut, drpDown
             );
 

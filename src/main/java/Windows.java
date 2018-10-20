@@ -7,6 +7,7 @@ import javafx.scene.layout.GridPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+@SuppressWarnings("WeakerAccess")
 public class Windows {
 
     private static boolean answer;

@@ -2,6 +2,7 @@ import org.json.JSONObject;
 import java.io.*;
 import java.util.Objects;
 
+@SuppressWarnings({"CanBeFinal", "WeakerAccess"})
 public class Cache {
 
     private static final String jsonData = readFile(App.cache.getName());
